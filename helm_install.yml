@@ -1,0 +1,10 @@
+- hosts: all
+  become: yes
+  tasks:
+    - name: Installing helm charts
+      shell: |
+        curl -LO https://git.io/get_helm.sh
+        chmod 700 get_helm.sh
+        ./get_helm.sh
+        helm init --client-only
+

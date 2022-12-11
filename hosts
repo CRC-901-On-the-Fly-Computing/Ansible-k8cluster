@@ -1,0 +1,6 @@
+[masters]
+master.xyz.com
+
+[workers]
+worker-1.xyz.com
+worker-2.xyz.com

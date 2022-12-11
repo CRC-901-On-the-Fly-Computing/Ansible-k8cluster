@@ -1,0 +1,85 @@
+- hosts: all
+  become: yes
+  debugger: on_failed
+  tasks:
+    - name: Reset Kubeadm
+      command: kubeadm reset -f
+      args:
+        removes: /etc/kubernetes/admin.conf
+        
+    - name: Stop the kubelet service
+      service:
+        name: kubelet
+        state: stopped
+        enabled: false
+      ignore_errors: true
+
+    - name: Stop the docker service
+      service:
+        name: docker
+        state: stopped
+        enabled: false
+      ignore_errors: true
+
+    - name: Remove kubelet and cni files
+      shell: |
+        rm -rf /var/lib/cni/ & rm -rf /var/lib/kubelet/* & rm -rf /etc/cni/ & rm -rf /etc/kubernetes/* & rm -rf /var/lib/etcd & rm -rf ~/pod_network_setup.txt & rm -rf ~/node_joined.txt
+
+    - name: Remove network configd
+      shell: |
+        ip link delete cni0 & ip link delete flannel.1 & ip link delete docker0
+      ignore_errors: yes
+
+    - name: Prevent apt errors
+      shell: |
+        rm /etc/apt/sources.list.d/kubernetes*
+      ignore_errors: true
+
+    - name: Remove the kubernetes and docker installation
+      apt:
+        name:
+          - kubeadm
+          - kubectl
+          - kubelet
+          - kubernetes-cni
+          - docker
+          - docker-engine
+          - docker.io
+          - containerd
+          - runc
+          - docker-ce
+          - docker-ce-cli
+        state: absent
+        purge: yes
+        autoremove: yes
+        force: yes
+      ignore_errors: true
+
+    - name: Remove config
+      shell: |
+        rm -rf ~/.kube
+
+- hosts: all
+  become: yes
+  debugger: on_failed
+  tasks:
+   - name: Remove the docker installation
+     apt:
+      name:
+        - docker
+        - docker-engine
+        - docker.io
+        - containerd
+        - runc
+        - docker-ce
+        - docker-ce-cli
+      state: absent
+      purge: yes
+
+        
+
+- hosts: all
+  become: yes
+  tasks:
+    - name: reboot ALL machines
+      reboot:

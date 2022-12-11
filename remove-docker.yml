@@ -1,0 +1,27 @@
+- hosts: all
+  become: yes
+  debugger: on_failed
+  tasks:
+   - name: Prevent apt errors
+     shell: |
+       rm /etc/apt/sources.list.d/docker*
+     ignore_errors: true
+          
+   - name: Remove the docker installation
+     apt:
+      name: 
+        - docker
+        - docker-engine
+        - docker.io
+        - containerd
+        - runc
+        - docker-ce
+        - docker-ce-cli
+      state: absent
+      purge: yes
+      
+- hosts: all
+  become: yes
+  tasks:
+   - name: reboot ALL machines
+     reboot:

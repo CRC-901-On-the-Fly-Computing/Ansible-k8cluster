@@ -1,0 +1,52 @@
+- hosts: masters
+  become: yes
+  tasks:
+    - name: initialize the cluster
+      shell: kubeadm init --pod-network-cidr=10.244.0.0/16
+      args:
+        chdir: $HOME
+        creates: cluster_initialized.txt
+      ignore_errors: true
+
+- hosts: masters
+  become: yes
+  tasks:
+    - name: Copy config file
+      shell: |
+        mkdir -p .kube
+        cp /etc/kubernetes/admin.conf .kube/config
+        chmod 755 .kube/config
+        mkdir -p /root/.kube
+        cp /etc/kubernetes/admin.conf /root/.kube/config
+        chmod 755 /root/.kube/config
+
+    - name: install Pod network
+      become: yes
+      shell: kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml 
+      args:
+        chdir: $HOME
+      register: result
+      until: "result is not failed"
+      retries: 3
+      delay: 10
+
+    - name: Get the token for joining the worker nodes
+      become: yes
+      shell: kubeadm token create  --print-join-command
+      register: kubernetes_join_command
+
+    - name: Print join command
+      debug:
+        msg: "{{ kubernetes_join_command.stdout }}"
+
+    - name: Print join command
+      debug:
+        msg: "{{ kubernetes_join_command.stdout_lines[0] }}"
+
+    - name: Copy join command to local file.
+      become: no
+      copy:
+        content: "{{ kubernetes_join_command.stdout_lines[0] }}"
+        dest: ./kubernetes_join_command
+      delegate_to: localhost
+        
